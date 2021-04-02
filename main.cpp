@@ -43,6 +43,7 @@ void Vort22(const Int_t events2analyze = 200) {
     Int_t mcNtracks, mcTrackId, pdg, pdgmc, mother, charge, fNtracks, ID, ii, tofFlag, maxloca, nentries, Nka=0, noret=0, noprobcut=0;   //, y;
     Double_t Px, Py ,Pz, mpdPt, mpdP, mcPt, dedx, m2, Eta, AbsEta, Theta, pion, kaon, proton, electron, maxprob, NumChargeTracks=0, mass, mpdPPt;
     TVector3 VCounter[BinsX][BinsY][BinsZ], Velocity[BinsX][BinsY][BinsZ], Pulse[BinsX][BinsY][BinsZ];
+    Double_t Energ[BinsX][BinsY][BinsZ], TermVort[VortBinsX][BinsY][VortBinsZ], eCounter[BinsX][BinsY][BinsZ];
 //---------------------Создаем Гистограммы Velocity-------------------------------------
     //TString HistNames1[10] = {"Z = (-300:-240)","(-240:-180)","(-180:-120)","(-120:-60)","(-60:0)","(0:60)","(60:120)","(120:180)","(180:240)","(240:300)"};
     TString HistNames1[BinsX];
@@ -92,6 +93,7 @@ void Vort22(const Int_t events2analyze = 200) {
             for(int k = 0; k<VortBinsZ; k++)
             {
             VortY[i][j][k] = 0;
+            TermVort[i][j][k]=0;
             }
     //-----------------------------------------------------------
     if (events2analyze == 0)
@@ -113,6 +115,7 @@ void Vort22(const Int_t events2analyze = 200) {
             for(int k = 0; k < BinsZ; k++)
             {
             EE[i][j][k] = 0;
+            eCounter[i][j][k] = 0;
             }
 //---------------------------------------------------------------
     //memset()
@@ -152,6 +155,12 @@ void Vort22(const Int_t events2analyze = 200) {
             //нужно это условие тк есть единичные события выходящие за пределы [-300;300] и ломающие границы
         Pulse[xbin][ybin][zbin].SetXYZ(Pulse[xbin][ybin][zbin](0) + Px, Pulse[xbin][ybin][zbin](1) + Py, Pulse[xbin][ybin][zbin](2) + Pz);
         EE[xbin][ybin][zbin] += Energy;
+        if (Energy =! 0)
+        {
+            Energ[xbin][ybin][zbin]+= Energy;
+            eCounter[xbin][ybin][zbin]++;
+        }
+
             }
         } //tracks end
 
@@ -186,6 +195,7 @@ void Vort22(const Int_t events2analyze = 200) {
                             VCounter[i][j][k](2)++;
                             Pulse[i][j][k](2) = 0;
                             }
+
                     }//end if
             }//end for
 //----------------------------------------------------------------------------------------------------------------
@@ -202,6 +212,7 @@ void Vort22(const Int_t events2analyze = 200) {
             if ( VCounter[i][j][k](0) != 0) { Velocity[i][j][k](0) = Velocity[i][j][k](0)/VCounter[i][j][k](0); }
             if ( VCounter[i][j][k](1) != 0) { Velocity[i][j][k](1) = Velocity[i][j][k](1)/VCounter[i][j][k](1); }
             if ( VCounter[i][j][k](2) != 0) { Velocity[i][j][k](2) = Velocity[i][j][k](2)/VCounter[i][j][k](2); }
+            if ( eCounter[i][j][k] != 0) { Energ[i][j][k] = Energ[i][j][k]/eCounter[i][j][k]; }
           /*  Velocity[9][0][k](0) = 0;		//
             Velocity[9][0][k](1) = 0;		// ИСКУССТВЕННО УБИРАЕМ ПИК В УГЛУ
             Velocity[9][0][k](2) = 0;		//
@@ -218,6 +229,7 @@ void Vort22(const Int_t events2analyze = 200) {
             //if(k == 5)	//НУЖНЫЙ НАМ СЛОЙ
            // { VelocityXY->SetBinContent(i+1,j+1, FullVelocity); }
             VelocityHist[k]->SetBinContent(i+1,j+1, FullVelocity);
+
             }
 
 
@@ -228,9 +240,14 @@ void Vort22(const Int_t events2analyze = 200) {
             for (int k = 0; k < VortBinsZ; k++)
             {
             VortY[i][j][k] = (Velocity[i][j][k+1](0) - Velocity[i][j][k](0))/((xup1-xlow1)/BinsX) - (Velocity[i+1][j][k](2) - Velocity[i][j][k](2))/((xup1-xlow1)/BinsX);
+            if (Energ[i][j][k] !=0)
+            {
+                TermVort[i][j][k] = 1/2/(Energ[i][j][k]*Energ[i][j][k])*(Velocity[i][j][k](0)*(Energ[i][j][k+1] - Energ[i][j][k])/((zup1-zlow1)/BinsZ) - Velocity[i][j][k](2)*(Energ[i+1][j][k] - Energ[i][j][k])/((xup1-xlow1)/BinsZ));
+            }
+
            // if (j==6)       //  Нужный нам слой Y
            // { VorticityY->SetBinContent(i+1, k+1, VortY[i][j][k]); }
-            VorticityHist[j]->SetBinContent(i+1, k+1, VortY[i][j][k]);
+            VorticityHist[j]->SetBinContent(i+1, k+1, TermVort[i][j][k]);
             }
 
 //---------------------- СЧИТАЕМ HELICITY -----------------------------------------
